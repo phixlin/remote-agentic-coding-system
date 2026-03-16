@@ -14,7 +14,7 @@ The Remote Coding Agent is a **platform-agnostic AI coding assistant orchestrato
 
 ```
 ┌─────────────────────────────────────────────┐
-│   Platform Adapters (Telegram, GitHub)      │
+│   Platform Adapters (Telegram, GitHub, Feishu)│
 │   • IPlatformAdapter interface              │
 │   • Handle platform-specific messaging      │
 └──────────────────┬──────────────────────────┘
@@ -1053,7 +1053,7 @@ await handleMessage(adapter, conversationId, finalMessage);
 ---
 
 **For detailed implementation examples, see:**
-- Platform adapter: `src/adapters/telegram.ts`, `src/adapters/github.ts`
+- Platform adapter: `src/adapters/telegram.ts`, `src/adapters/github.ts`, `src/adapters/feishu.ts`
 - AI client: `src/clients/claude.ts`, `src/clients/codex.ts`
 - Orchestrator: `src/orchestrator/orchestrator.ts`
 - Command handler: `src/handlers/command-handler.ts`

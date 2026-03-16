@@ -11,6 +11,7 @@ import express from 'express';
 import { TelegramAdapter } from './adapters/telegram';
 import { TestAdapter } from './adapters/test';
 import { GitHubAdapter } from './adapters/github';
+import { FeishuAdapter } from './adapters/feishu';
 import { handleMessage } from './orchestrator/orchestrator';
 import { pool } from './db/connection';
 import { ConversationLockManager } from './utils/conversation-lock';
@@ -19,11 +20,24 @@ async function main(): Promise<void> {
   console.log('[App] Starting Remote Coding Agent (Telegram + Claude MVP)');
 
   // Validate required environment variables
-  const required = ['DATABASE_URL', 'TELEGRAM_BOT_TOKEN'];
+  const required = ['DATABASE_URL'];
   const missing = required.filter(v => !process.env[v]);
   if (missing.length > 0) {
     console.error('[App] Missing required environment variables:', missing.join(', '));
     console.error('[App] Please check .env.example for required configuration');
+    process.exit(1);
+  }
+
+  const hasTelegram = Boolean(process.env.TELEGRAM_BOT_TOKEN);
+  const hasFeishu =
+    Boolean(process.env.FEISHU_APP_ID) &&
+    Boolean(process.env.FEISHU_APP_SECRET) &&
+    Boolean(process.env.FEISHU_VERIFICATION_TOKEN);
+  const hasGitHub = Boolean(process.env.GITHUB_TOKEN && process.env.WEBHOOK_SECRET);
+  if (!hasTelegram && !hasFeishu && !hasGitHub) {
+    console.error(
+      '[App] No platform adapters configured. Set Telegram, Feishu, or GitHub credentials.'
+    );
     process.exit(1);
   }
 
@@ -70,6 +84,30 @@ async function main(): Promise<void> {
     console.log('[GitHub] Adapter not initialized (missing GITHUB_TOKEN or WEBHOOK_SECRET)');
   }
 
+  // Initialize Feishu adapter (conditional)
+  let feishu: FeishuAdapter | null = null;
+  if (
+    process.env.FEISHU_APP_ID &&
+    process.env.FEISHU_APP_SECRET &&
+    process.env.FEISHU_VERIFICATION_TOKEN
+  ) {
+    feishu = new FeishuAdapter({
+      appId: process.env.FEISHU_APP_ID,
+      appSecret: process.env.FEISHU_APP_SECRET,
+      verificationToken: process.env.FEISHU_VERIFICATION_TOKEN,
+      streamingMode: (process.env.FEISHU_STREAMING_MODE as 'stream' | 'batch') || 'stream',
+      botOpenId: process.env.FEISHU_BOT_OPEN_ID,
+      requireGroupMention:
+        process.env.FEISHU_REQUIRE_GROUP_MENTION === 'false' ? false : true,
+      lockManager,
+    });
+    await feishu.start();
+  } else {
+    console.log(
+      '[Feishu] Adapter not initialized (missing FEISHU_APP_ID, FEISHU_APP_SECRET, or FEISHU_VERIFICATION_TOKEN)'
+    );
+  }
+
   // Setup Express server
   const app = express();
   const port = process.env.PORT || 3000;
@@ -102,6 +140,22 @@ async function main(): Promise<void> {
 
   // JSON parsing for all other endpoints
   app.use(express.json());
+
+  if (feishu) {
+    app.post('/webhooks/feishu', async (req, res) => {
+      try {
+        const result = await feishu!.handleWebhook(req.body);
+        if (result.challenge) {
+          return res.status(200).json({ challenge: result.challenge });
+        }
+        return res.status(200).json({ code: 0, msg: 'success' });
+      } catch (error) {
+        console.error('[Feishu] Webhook endpoint error:', error);
+        return res.status(400).json({ code: 1, msg: 'invalid request' });
+      }
+    });
+    console.log('[Express] Feishu webhook endpoint registered');
+  }
 
   // Health check endpoints
   app.get('/health', (_req, res) => {
@@ -170,33 +224,40 @@ async function main(): Promise<void> {
   });
 
   // Initialize platform adapter (Telegram)
-  const streamingMode = (process.env.TELEGRAM_STREAMING_MODE || 'stream') as 'stream' | 'batch';
-  const telegram = new TelegramAdapter(process.env.TELEGRAM_BOT_TOKEN!, streamingMode);
+  let telegram: TelegramAdapter | null = null;
 
-  // Handle text messages
-  telegram.getBot().on('text', async ctx => {
-    const conversationId = telegram.getConversationId(ctx);
-    const message = ctx.message.text;
+  if (hasTelegram) {
+    const streamingMode = (process.env.TELEGRAM_STREAMING_MODE || 'stream') as 'stream' | 'batch';
+    telegram = new TelegramAdapter(process.env.TELEGRAM_BOT_TOKEN!, streamingMode);
 
-    if (!message) return;
+    // Handle text messages
+    telegram.getBot().on('text', async ctx => {
+      const conversationId = telegram!.getConversationId(ctx);
+      const message = ctx.message.text;
 
-    // Fire-and-forget: handler returns immediately, processing happens async
-    lockManager
-      .acquireLock(conversationId, async () => {
-        await handleMessage(telegram, conversationId, message);
-      })
-      .catch(error => {
-        console.error('[Telegram] Failed to process message:', error);
-      });
-  });
+      if (!message) return;
 
-  // Start bot
-  await telegram.start();
+      // Fire-and-forget: handler returns immediately, processing happens async
+      lockManager
+        .acquireLock(conversationId, async () => {
+          await handleMessage(telegram!, conversationId, message);
+        })
+        .catch(error => {
+          console.error('[Telegram] Failed to process message:', error);
+        });
+    });
+
+    // Start bot
+    await telegram.start();
+    console.log('[App] Telegram bot ready');
+  } else {
+    console.log('[Telegram] Adapter not initialized (missing TELEGRAM_BOT_TOKEN)');
+  }
 
   // Graceful shutdown
   const shutdown = (): void => {
     console.log('[App] Shutting down gracefully...');
-    telegram.stop();
+    telegram?.stop();
     pool.end().then(() => {
       console.log('[Database] Connection pool closed');
       process.exit(0);
@@ -207,7 +268,9 @@ async function main(): Promise<void> {
   process.once('SIGTERM', shutdown);
 
   console.log('[App] Remote Coding Agent is ready!');
-  console.log('[App] Send messages to your Telegram bot to get started');
+  if (telegram) {
+    console.log('[App] Send messages to your Telegram bot to get started');
+  }
   console.log('[App] Test endpoint available: POST http://localhost:' + port + '/test/message');
 }
 

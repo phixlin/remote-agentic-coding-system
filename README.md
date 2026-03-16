@@ -6,7 +6,7 @@ Control AI coding assistants (Claude Code, Codex) remotely from Telegram, GitHub
 
 ## Features
 
-- **Multi-Platform Support**: Interact via Telegram, GitHub issues/PRs, and more in the future
+- **Multi-Platform Support**: Interact via Telegram, GitHub issues/PRs, Feishu (Lark), and more in the future
 - **Multiple AI Assistants**: Choose between Claude Code or Codex (or both)
 - **Persistent Sessions**: Sessions survive container restarts with full context preservation
 - **Codebase Management**: Clone and work with any GitHub repository
@@ -343,6 +343,50 @@ Interact by @mentioning `@remote-agent` in issues or PRs:
 **Subsequent mentions:**
 - Resumes existing conversation
 - Maintains full context across comments
+
+</details>
+
+<details>
+<summary><b>🪄 Feishu / Lark Bot</b></summary>
+
+**Requirements:**
+- [Feishu Developer Console](https://open.feishu.cn/) application with Bot capability enabled
+- Bot must have `im:message` related permissions (receive + send)
+- Event subscription must be configured **without encryption**
+
+**Step 1: Create a Bot App**
+1. Visit the Feishu (Lark) Developer Console and create a new app.
+2. Enable the "Bot" feature and grant at least the following permissions:
+   - `im:message`
+   - `im:message.group`
+   - `im:message.p2p`
+3. Publish the app within your tenant so it can join group chats.
+
+**Step 2: Configure Event Subscription**
+- **Request URL:** `https://your-domain.com/webhooks/feishu`
+- **Verification Token:** Copy the value shown in the console; set it as `FEISHU_VERIFICATION_TOKEN`.
+- **Encryption:** **Disable encryption** (the adapter currently expects plain JSON payloads).
+- Subscribe to **Message Receive** events (`im.message.receive_v1`).
+
+**Step 3: Set Environment Variables**
+
+```env
+FEISHU_APP_ID=cli_xxx
+FEISHU_APP_SECRET=xxx
+FEISHU_VERIFICATION_TOKEN=the_token_from_console
+FEISHU_BOT_OPEN_ID=ou_xxx            # Optional, helps adapter确认@提及
+FEISHU_REQUIRE_GROUP_MENTION=true    # true(default) 仅在群聊被@时响应
+FEISHU_STREAMING_MODE=stream  # stream (default) | batch
+```
+
+**Step 4: Add the Bot to Chats**
+- Invite the bot to a group chat and `@mention` it, or DM it directly.
+- The adapter automatically creates conversations keyed by `chat_id`.
+
+**Usage tips:**
+- Use `/clone`, `/command-invoke`, etc. the same way as Telegram.
+- For local development, expose the server via ngrok/Cloudflare tunnel and point Feishu's event URL to it.
+- By default the adapter只在群聊中检测到 `@bot` 时响应，可通过 `FEISHU_REQUIRE_GROUP_MENTION=false` 关闭此限制（不推荐）。
 
 </details>
 
