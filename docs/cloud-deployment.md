@@ -1,12 +1,16 @@
-# Cloud Deployment Guide
+# Cloud Deployment Guide / 云端部署指南
 
 Deploy the Remote Coding Agent to a cloud VPS for 24/7 operation with automatic HTTPS and persistent uptime.
+
+本文档讲解如何在云服务器上部署 Remote Coding Agent，获得 7×24 小时运行、自动 HTTPS 与持久连接。
 
 **Navigation:** [Prerequisites](#prerequisites) • [Server Setup](#1-server-provisioning--initial-setup) • [DNS Configuration](#2-dns-configuration) • [Repository Setup](#3-clone-repository) • [Environment Config](#4-environment-configuration) • [Database Migration](#5-database-migration) • [Caddy Setup](#6-caddy-configuration) • [Start Services](#7-start-services) • [Verify](#8-verify-deployment)
 
 ---
 
-## Prerequisites
+## Prerequisites / 前置条件
+
+上线前请准备云服务器、域名（或二级域名）、SSH 工具以及基本命令行知识。推荐配置：1-2 vCPU、2GB+ RAM、20GB SSD、Ubuntu 22.04。
 
 **Required:**
 - Cloud VPS account (DigitalOcean, Linode, AWS EC2, Vultr, etc.)
@@ -20,7 +24,7 @@ Deploy the Remote Coding Agent to a cloud VPS for 24/7 operation with automatic 
 - **Storage:** 20GB SSD
 - **OS:** Ubuntu 22.04 LTS
 
-### Generate SSH Key (Required)
+### Generate SSH Key (Required) / 生成 SSH 密钥
 
 **Before creating your VPS**, generate an SSH key pair on your local machine:
 
@@ -41,7 +45,9 @@ cat ~/.ssh/id_ed25519.pub
 
 ---
 
-## 1. Server Provisioning & Initial Setup
+## 1. Server Provisioning & Initial Setup / 服务器创建与基础设置
+
+选择云厂商（如 DO、AWSEC2、阿里云等）创建 Ubuntu 22.04 VPS，完成初始 SSH 登录、系统更新与依赖安装。
 
 ### Create VPS Instance (Examples)
 
@@ -190,7 +196,9 @@ psql --version
 
 ---
 
-## 2. DNS Configuration
+## 2. DNS Configuration / 配置 DNS
+
+把域名或子域指向 VPS 的公网 IP，确保后续 Caddy 可以申请证书。
 
 Point your domain to your server's IP address.
 
@@ -213,7 +221,9 @@ TTL: Auto
 
 ---
 
-## 3. Clone Repository
+## 3. Clone Repository / 克隆代码仓库
+
+在服务器上下载远程仓库，并准备 `workspace` 目录。
 
 **On your server:**
 
@@ -229,7 +239,9 @@ git clone https://github.com/dynamous-community/remote-coding-agent .
 
 ---
 
-## 4. Environment Configuration
+## 4. Environment Configuration / 配置环境变量
+
+根据 `.env.example` 填写数据库、AI 凭证、平台令牌等所有必需变量。
 
 ### Create Environment File
 
@@ -449,7 +461,9 @@ GITHUB_STREAMING_MODE=batch  # batch (default) | stream
 
 ---
 
-## 5. Database Migration
+## 5. Database Migration / 初始化数据库
+
+首次部署时运行迁移脚本或 `psql` 执行 `migrations/001_initial_schema.sql`，创建三张核心表。
 
 **IMPORTANT: Run this BEFORE starting the application.**
 
@@ -470,7 +484,9 @@ You'll run migrations after starting the database in Section 7.
 
 ---
 
-## 6. Caddy Configuration
+## 6. Caddy Configuration / 配置 Caddy
+
+使用 Caddy 作为前置反向代理，负责 HTTPS、反向代理 `/webhooks/*`、静态健康检查等。
 
 Caddy provides automatic HTTPS with Let's Encrypt certificates.
 
@@ -505,7 +521,9 @@ Replace `remote-agent.yourdomain.com` with your actual domain.
 
 ---
 
-## 7. Start Services
+## 7. Start Services / 启动服务
+
+准备工作区权限后，通过 `docker compose` 启动 `app` 与 `postgres`（如使用 `with-db` profile）。
 
 ### Setup Workspace Permissions (Linux Only)
 
@@ -556,7 +574,9 @@ docker compose -f docker-compose.yml -f docker-compose.cloud.yml logs -f app
 
 ---
 
-## 8. Verify Deployment
+## 8. Verify Deployment / 验证部署
+
+检查 `/health`、SSL 证书以及 Telegram/GitHub/飞书 实际对话，确认事件能到达应用。
 
 ### Check Health Endpoints
 
@@ -594,7 +614,9 @@ Should receive bot response with available commands.
 
 ---
 
-## 9. Configure GitHub Webhooks
+## 9. Configure GitHub Webhooks / 配置 GitHub Webhook
+
+在目标仓库设置 Hooks，填写 `https://your-domain/webhooks/github`、`WEBHOOK_SECRET`，勾选 Issues/PR/Issue comments。
 
 Now that your app has a public URL, configure GitHub webhooks.
 
@@ -638,7 +660,9 @@ Bot should respond with analysis.
 
 ---
 
-## 10. Maintenance & Operations
+## 10. Maintenance & Operations / 维护与运维
+
+包含查看日志、升级应用、重启/停止服务等常规运维操作。
 
 ### View Logs
 
@@ -691,7 +715,9 @@ docker compose -f docker-compose.yml -f docker-compose.cloud.yml down -v
 
 ---
 
-## Troubleshooting
+## Troubleshooting / 故障排查
+
+列举常见问题，如 Caddy 无法签证书、应用无响应、数据库/磁盘异常、Webhook 失效等，并提供检查步骤。
 
 ### Caddy Not Getting SSL Certificate
 

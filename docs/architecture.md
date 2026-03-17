@@ -1,16 +1,22 @@
-# Architecture Guide
+# Architecture Guide / 架构指南
 
 Comprehensive guide to understanding and extending the Remote Coding Agent platform.
+
+全面介绍 Remote Coding Agent 的系统组成与扩展方式，帮助你在现有架构上快速添加新平台、AI 助手或命令体系。
 
 **Navigation:** [Overview](#system-overview) • [Adding Platforms](#adding-platform-adapters) • [Adding AI Assistants](#adding-ai-assistant-clients) • [Commands](#command-system) • [Streaming](#streaming-modes) • [Database](#database-schema)
 
 ---
 
-## System Overview
+## System Overview / 系统概览
+
+Remote Coding Agent 是一个**平台无关的 AI 编程调度器**，它把 Telegram、GitHub、飞书等通信渠道与 Claude、Codex 等 AI 助手通过统一接口串联起来，实现远程编码与持续会话。
 
 The Remote Coding Agent is a **platform-agnostic AI coding assistant orchestrator** that connects messaging platforms (Telegram, GitHub, Slack) to AI coding assistants (Claude Code, Codex) via a unified interface.
 
-### Core Architecture
+### Core Architecture / 核心架构
+
+下图展示了平台适配器、Orchestrator、命令系统、AI 客户端以及 PostgreSQL 数据库之间的关系。
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -57,11 +63,13 @@ The Remote Coding Agent is a **platform-agnostic AI coding assistant orchestrato
 
 ---
 
-## Adding Platform Adapters
+## Adding Platform Adapters / 新增平台适配器
+
+本节介绍如何实现 `IPlatformAdapter` 接口，将新的聊天平台或协作工具接入系统（例如飞书、Slack 等）。
 
 Platform adapters connect messaging platforms to the orchestrator. Implement the `IPlatformAdapter` interface to add new platforms.
 
-### IPlatformAdapter Interface
+### IPlatformAdapter Interface / 接口说明
 
 **Location:** `src/types/index.ts:49-74`
 
@@ -230,7 +238,9 @@ async handleWebhook(payload: any, signature: string): Promise<void> {
 
 ---
 
-## Adding AI Assistant Clients
+## Adding AI Assistant Clients / 新增 AI 助手客户端
+
+介绍如何实现 `IAssistantClient`，把新的 AI 编码助手（如自研模型或其他 IDE 代理）无缝接入。
 
 AI assistant clients wrap AI SDKs and provide a unified streaming interface. Implement the `IAssistantClient` interface to add new assistants.
 
@@ -451,7 +461,9 @@ if (event.type === 'error') {
 
 ---
 
-## Command System
+## Command System / 命令系统
+
+阐述命令架构、存储方式与变量替换，确保 `/command-invoke` 等流程可定制、可复用。
 
 The command system allows users to define custom workflows in Git-versioned markdown files.
 
@@ -637,7 +649,9 @@ export async function handleCommand(
 
 ---
 
-## Streaming Modes
+## Streaming Modes / 流式与批量模式
+
+说明各平台的 streaming/batch 配置、差异以及工具调用日志的格式化方式。
 
 Streaming modes control how AI responses are delivered to users: real-time (stream) or accumulated (batch).
 
@@ -748,7 +762,9 @@ export function formatToolCall(
 
 ---
 
-## Database Schema
+## Database Schema / 数据库结构
+
+概述 `remote_agent_codebases`、`remote_agent_conversations`、`remote_agent_sessions` 三张核心表与常用操作。
 
 The platform uses a minimal 3-table schema with `remote_agent_` prefix.
 
@@ -848,7 +864,9 @@ remote_agent_sessions
 
 ---
 
-## Message Flow Examples
+## Message Flow Examples / 消息流示例
+
+通过 Telegram/GitHub 示例展示消息从用户到 AI、再返回平台的全过程。
 
 ### Telegram Chat Flow
 
@@ -930,7 +948,9 @@ Post single comment on issue with summary
 
 ---
 
-## Extension Checklist
+## Extension Checklist / 扩展检查表
+
+列出新增平台、AI 或命令时需要完成的步骤，方便快速自查。
 
 ### Adding a New Platform Adapter
 
@@ -968,7 +988,9 @@ Post single comment on issue with summary
 
 ---
 
-## Common Patterns
+## Common Patterns / 常见模式
+
+总结数据库 / 会话 / 流式处理中的通用代码片段，便于复用。
 
 ### Idempotent Operations
 
@@ -1032,7 +1054,9 @@ await handleMessage(adapter, conversationId, finalMessage);
 
 ---
 
-## Key Takeaways
+## Key Takeaways / 核心要点
+
+归纳本架构的关键理念：接口驱动、流式优先、会话持久化、命令文件化等。
 
 1. **Interfaces enable extensibility**: Both `IPlatformAdapter` and `IAssistantClient` allow adding platforms and AI assistants without modifying core logic
 
