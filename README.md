@@ -351,44 +351,39 @@ Interact by @mentioning `@remote-agent` in issues or PRs:
 <details>
 <summary><b>🪄 Feishu / Lark Bot</b></summary>
 
-**Requirements:**
-- [Feishu Developer Console](https://open.feishu.cn/) application with Bot capability enabled
-- Bot must have `im:message` related permissions (receive + send)
-- Event subscription must be configured **without encryption**
-
-**Step 1: Create a Bot App**
-1. Visit the Feishu (Lark) Developer Console and create a new app.
-2. Enable the "Bot" feature and grant at least the following permissions:
-   - `im:message`
-   - `im:message.group`
-   - `im:message.p2p`
-3. Publish the app within your tenant so it can join group chats.
-
-**Step 2: Configure Event Subscription**
-- **Request URL:** `https://your-domain.com/webhooks/feishu`
-- **Verification Token:** Copy the value shown in the console; set it as `FEISHU_VERIFICATION_TOKEN`.
-- **Encryption:** **Disable encryption** (the adapter currently expects plain JSON payloads).
-- Subscribe to **Message Receive** events (`im.message.receive_v1`).
-
-**Step 3: Set Environment Variables**
+**Long Connection (Default)**
+1. In the [Feishu Developer Console](https://open.feishu.cn/), create an app with Bot capability enabled.
+2. Grant the bot `im:message`, `im:message.group`, `im:message.p2p` permissions and publish it to your tenant.
+3. In **Event Subscriptions**, switch delivery mode to **Long Connection**, subscribe to `im.message.receive_v1`, and keep encryption disabled.
+4. No public URL or verification token is required—the SDK opens a WebSocket connection directly to Feishu.
 
 ```env
 FEISHU_APP_ID=cli_xxx
 FEISHU_APP_SECRET=xxx
-FEISHU_VERIFICATION_TOKEN=the_token_from_console
-FEISHU_BOT_OPEN_ID=ou_xxx            # Optional, helps adapter确认@提及
-FEISHU_REQUIRE_GROUP_MENTION=true    # true(default) 仅在群聊被@时响应
-FEISHU_STREAMING_MODE=stream  # stream (default) | batch
+FEISHU_USE_LONG_CONNECTION=true    # default
+FEISHU_BOT_OPEN_ID=ou_xxx          # Optional, precise mention detection
+FEISHU_REQUIRE_GROUP_MENTION=true  # true = only respond to @mentions in groups
+FEISHU_STREAMING_MODE=stream       # stream (default) | batch
 ```
 
-**Step 4: Add the Bot to Chats**
-- Invite the bot to a group chat and `@mention` it, or DM it directly.
-- The adapter automatically creates conversations keyed by `chat_id`.
+**HTTP Webhook Mode (Optional)**
+If you prefer the classic callback flow, set `FEISHU_USE_LONG_CONNECTION=false`, expose `https://your-domain.com/webhooks/feishu`, and provide the verification token shown in the console:
 
-**Usage tips:**
-- Use `/clone`, `/command-invoke`, etc. the same way as Telegram.
-- For local development, expose the server via ngrok/Cloudflare tunnel and point Feishu's event URL to it.
-- By default the adapter只在群聊中检测到 `@bot` 时响应，可通过 `FEISHU_REQUIRE_GROUP_MENTION=false` 关闭此限制（不推荐）。
+```env
+FEISHU_APP_ID=cli_xxx
+FEISHU_APP_SECRET=xxx
+FEISHU_USE_LONG_CONNECTION=false
+FEISHU_VERIFICATION_TOKEN=the_token_from_console
+```
+
+- Keep encryption disabled (JSON payloads only).
+- Subscribe to `im.message.receive_v1`.
+- Use ngrok/Cloudflare tunnel for local testing if you need to reach `/webhooks/feishu`.
+
+**Usage tips**
+- Invite the bot to a chat, `@mention` it in groups, or DM it directly; each chat_id maps to a conversation.
+- Slash commands (`/clone`, `/command-invoke`, etc.) work the same as on Telegram.
+- Disable mention gating via `FEISHU_REQUIRE_GROUP_MENTION=false` if you want the bot to respond to all group messages (not recommended).
 
 </details>
 

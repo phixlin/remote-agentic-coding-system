@@ -29,10 +29,11 @@ async function main(): Promise<void> {
   }
 
   const hasTelegram = Boolean(process.env.TELEGRAM_BOT_TOKEN);
+  const feishuUseLongConnection = process.env.FEISHU_USE_LONG_CONNECTION !== 'false';
   const hasFeishu =
     Boolean(process.env.FEISHU_APP_ID) &&
     Boolean(process.env.FEISHU_APP_SECRET) &&
-    Boolean(process.env.FEISHU_VERIFICATION_TOKEN);
+    (feishuUseLongConnection || Boolean(process.env.FEISHU_VERIFICATION_TOKEN));
   const hasGitHub = Boolean(process.env.GITHUB_TOKEN && process.env.WEBHOOK_SECRET);
   if (!hasTelegram && !hasFeishu && !hasGitHub) {
     console.error(
@@ -86,25 +87,21 @@ async function main(): Promise<void> {
 
   // Initialize Feishu adapter (conditional)
   let feishu: FeishuAdapter | null = null;
-  if (
-    process.env.FEISHU_APP_ID &&
-    process.env.FEISHU_APP_SECRET &&
-    process.env.FEISHU_VERIFICATION_TOKEN
-  ) {
+  if (process.env.FEISHU_APP_ID && process.env.FEISHU_APP_SECRET) {
     feishu = new FeishuAdapter({
       appId: process.env.FEISHU_APP_ID,
       appSecret: process.env.FEISHU_APP_SECRET,
       verificationToken: process.env.FEISHU_VERIFICATION_TOKEN,
       streamingMode: (process.env.FEISHU_STREAMING_MODE as 'stream' | 'batch') || 'stream',
       botOpenId: process.env.FEISHU_BOT_OPEN_ID,
-      requireGroupMention:
-        process.env.FEISHU_REQUIRE_GROUP_MENTION === 'false' ? false : true,
+      requireGroupMention: process.env.FEISHU_REQUIRE_GROUP_MENTION === 'false' ? false : true,
+      useLongConnection: feishuUseLongConnection,
       lockManager,
     });
     await feishu.start();
   } else {
     console.log(
-      '[Feishu] Adapter not initialized (missing FEISHU_APP_ID, FEISHU_APP_SECRET, or FEISHU_VERIFICATION_TOKEN)'
+      '[Feishu] Adapter not initialized (missing FEISHU_APP_ID or FEISHU_APP_SECRET)'
     );
   }
 
@@ -141,7 +138,7 @@ async function main(): Promise<void> {
   // JSON parsing for all other endpoints
   app.use(express.json());
 
-  if (feishu) {
+  if (feishu?.isWebhookEnabled()) {
     app.post('/webhooks/feishu', async (req, res) => {
       try {
         const result = await feishu!.handleWebhook(req.body);
