@@ -419,6 +419,9 @@ docker compose logs -f app-with-db
 # Database tables are created automatically via init script
 ```
 
+> **Postgres 18+ volume note**  
+> 官方镜像从 18 版起默认将数据存储在 `/var/lib/postgresql/<major>/main` 目录。`docker-compose.yml` 已将宿主目录 `./postgres-data` 挂载到 `/var/lib/postgresql`，便于后续执行 `pg_upgrade --link`。若你把卷挂载到旧路径 `/var/lib/postgresql/data`，容器会报错提示“Counter to that, there appears to be PostgreSQL data in /var/lib/postgresql/data…”。如遇该错误，删除旧卷或改用本文示例的挂载方式即可恢复。
+
 **Option C: Local Development (No Docker)**
 
 Run directly with Node.js (requires local PostgreSQL or remote `DATABASE_URL` in `.env`):
