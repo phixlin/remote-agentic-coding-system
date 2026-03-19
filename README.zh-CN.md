@@ -127,6 +127,26 @@ docker compose down                   # 停止并移除容器
 - 飞书消息未触发 → 确认事件订阅已启用、`verification token` 一致、是否在群聊中 @ 了机器人。
 - AI 会话卡住 → `/reset` 后重试；或检查 Claude/Codex 凭证是否过期。
 
+## 代理/翻墙环境
+
+在部分地区访问 Telegram、飞书或 GitHub 需要经过代理。最简单的方式是在 `docker-compose.yml` 中为 `app` / `app-with-db` 服务设置代理环境变量，让容器内的 Codex、Telegram/飞书 适配器全部借助 Clash/Sing-box 等代理出网：
+
+```yaml
+services:
+  app-with-db:
+    environment:
+      HTTP_PROXY:  http://172.17.0.1:7890
+      HTTPS_PROXY: http://172.17.0.1:7890
+      NO_PROXY:    localhost,127.0.0.1,postgres,app-with-db
+```
+
+- `172.17.0.1` 是宿主机在默认 Docker 网桥中的 IP（如果你使用自定义网络，请替换为实际地址）。
+- `7890` 替换为 Clash/Sing-box 暴露的 HTTP 端口；如果走 socks5，请写成 `socks5://172.17.0.1:7891`。
+- 确保代理程序开启 `allow-lan`，容器才能访问宿主机端口。
+- 想快速验证代理是否生效，可在宿主机先执行 `export https_proxy=http://127.0.0.1:7890 && curl https://api.telegram.org`。
+
+按照上述方式修改 compose 文件并 `docker compose up -d` 之后，Codex、Telegram、飞书、GitHub 等组件都会自动走代理，无需单独配置。
+
 ## 更多文档
 
 - `README.md`：英文版完整说明。
