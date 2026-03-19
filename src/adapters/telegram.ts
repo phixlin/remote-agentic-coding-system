@@ -13,7 +13,15 @@ export class TelegramAdapter implements IPlatformAdapter {
   private streamingMode: 'stream' | 'batch';
 
   constructor(token: string, mode: 'stream' | 'batch' = 'stream') {
-    const proxyUrl = process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    const proxyUrl =
+      process.env.TELEGRAM_PROXY_URL ||
+      process.env.TELEGRAM_PROXY ||
+      process.env.HTTPS_PROXY_URL ||
+      process.env.HTTPS_PROXY ||
+      process.env.HTTP_PROXY ||
+      process.env.https_proxy_url ||
+      process.env.https_proxy ||
+      process.env.http_proxy;
     let agent: HttpsProxyAgent<string> | undefined;
 
     if (proxyUrl) {
