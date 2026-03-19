@@ -364,21 +364,15 @@ FEISHU_USE_LONG_CONNECTION=true    # default
 FEISHU_BOT_OPEN_ID=ou_xxx          # Optional, precise mention detection
 FEISHU_REQUIRE_GROUP_MENTION=true  # true = only respond to @mentions in groups
 FEISHU_STREAMING_MODE=stream       # stream (default) | batch
+FEISHU_VERIFICATION_TOKEN=xxx      # Optional, still recommended for Request URL checks
 ```
 
 **HTTP Webhook Mode (Optional)**
-If you prefer the classic callback flow, set `FEISHU_USE_LONG_CONNECTION=false`, expose `https://your-domain.com/webhooks/feishu`, and provide the verification token shown in the console:
+Even在长连接模式下，建议仍然在“请求地址”里配置同一个 URL（`https://your-domain.com/webhooks/feishu`）并填写 `FEISHU_VERIFICATION_TOKEN`，这样开放平台在“检测连接”时可以顺利完成 Request URL 验证。若你只想走 HTTP 模式，将 `FEISHU_USE_LONG_CONNECTION=false` 即可（保持相同的 token 和 URL）。
 
-```env
-FEISHU_APP_ID=cli_xxx
-FEISHU_APP_SECRET=xxx
-FEISHU_USE_LONG_CONNECTION=false
-FEISHU_VERIFICATION_TOKEN=the_token_from_console
-```
-
-- Keep encryption disabled (JSON payloads only).
-- Subscribe to `im.message.receive_v1`.
-- Use ngrok/Cloudflare tunnel for local testing if you need to reach `/webhooks/feishu`.
+- 加密请保持关闭（纯 JSON）。
+- 订阅 `im.message.receive_v1`。
+- 本地开发可通过 ngrok/Cloudflare 暴露服务。
 
 **Usage tips**
 - Invite the bot to a chat, `@mention` it in groups, or DM it directly; each chat_id maps to a conversation.

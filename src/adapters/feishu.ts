@@ -75,7 +75,7 @@ export class FeishuAdapter implements IPlatformAdapter {
     this.requireGroupMention = config.requireGroupMention !== false;
     this.botOpenId = config.botOpenId;
     this.useLongConnection = config.useLongConnection !== false;
-    this.webhookEnabled = !this.useLongConnection && Boolean(config.verificationToken);
+    this.webhookEnabled = Boolean(config.verificationToken);
     this.client = new Lark.Client({
       appId: config.appId,
       appSecret: config.appSecret,
@@ -151,7 +151,7 @@ export class FeishuAdapter implements IPlatformAdapter {
   async handleWebhook(body: FeishuWebhookRequest): Promise<{ challenge?: string }> {
     if (!this.webhookEnabled) {
       throw new Error(
-        'Feishu webhook mode disabled. Set FEISHU_USE_LONG_CONNECTION=false and provide FEISHU_VERIFICATION_TOKEN to enable callbacks.'
+        'Feishu webhook disabled. Provide FEISHU_VERIFICATION_TOKEN to enable HTTP callbacks.'
       );
     }
 
