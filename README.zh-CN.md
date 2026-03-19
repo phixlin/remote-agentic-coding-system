@@ -51,7 +51,7 @@ npm install                # 本地开发环境
 #### Telegram
 
 1. 和 [@BotFather](https://t.me/BotFather) 对话 → `/newbot` → 获得 `TELEGRAM_BOT_TOKEN`。
-2. 可选：`TELEGRAM_STREAMING_MODE=stream|batch` 控制推送方式。
+2. 可选：`TELEGRAM_STREAMING_MODE=stream|batch` 控制推送方式，`TELEGRAM_PROXY_URL` 可以填入 `http://172.17.0.1:7890` 等代理地址（如果未设置，则回退读取 `HTTPS_PROXY/HTTP_PROXY`）。
 
 #### GitHub Webhook
 

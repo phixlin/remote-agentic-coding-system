@@ -221,6 +221,7 @@ You must configure **at least one** platform to interact with your AI assistant.
 
 ```env
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHI...
+TELEGRAM_PROXY_URL=http://172.17.0.1:7890  # Optional HTTP/SOCKS proxy (falls back to HTTPS_PROXY/HTTP_PROXY)
 ```
 
 **Configure streaming mode (optional):**

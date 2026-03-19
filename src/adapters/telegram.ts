@@ -3,6 +3,7 @@
  * Handles message sending with 4096 character limit splitting
  */
 import { Telegraf, Context } from 'telegraf';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { IPlatformAdapter } from '../types';
 
 const MAX_LENGTH = 4096;
@@ -12,10 +13,27 @@ export class TelegramAdapter implements IPlatformAdapter {
   private streamingMode: 'stream' | 'batch';
 
   constructor(token: string, mode: 'stream' | 'batch' = 'stream') {
+    const proxyUrl = process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    let agent: HttpsProxyAgent<string> | undefined;
+
+    if (proxyUrl) {
+      try {
+        agent = new HttpsProxyAgent(proxyUrl);
+        console.log('[Telegram] Using proxy for outbound requests');
+      } catch (error) {
+        console.warn('[Telegram] Failed to configure proxy agent:', error);
+      }
+    }
+
     // Disable handler timeout to support long-running AI operations
     // Default is 90 seconds which is too short for complex coding tasks
     this.bot = new Telegraf(token, {
       handlerTimeout: Infinity,
+      telegram: agent
+        ? {
+            agent,
+          }
+        : undefined,
     });
     this.streamingMode = mode;
     console.log(`[Telegram] Adapter initialized (mode: ${mode}, timeout: disabled)`);
